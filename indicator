@@ -1,0 +1,811 @@
+//@version=5
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+// 
+// Made by Micke "mikul" Pollak  
+// admin@mikul.se
+
+// First version of the MA script is inspired by a script made by BigBitsIO. 
+// Find BigBitsIO at: https://www.tradingview.com/u/BigBitsIO/#published-scripts
+//
+// "Multi timeframe moving averages" is contributed by @topmustache 
+// (This has been replaced but the code is still included)
+//
+// Original Bull market support band made by legroszach. He has given me permission to include his code. 
+// You can find legroszach here: https://www.tradingview.com/u/legroszach/
+//
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// Lets start! ---------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+indicator(shorttitle="mikul's combo indicator", title="mikul's combo indicator", overlay=true)
+
+
+
+// Quick toggle --------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+showbb = input.bool(true, title='Show Bollinger Bands', group='Quick toggle')
+showichi = input.bool(true, title='Show Ichimoku cloud', group='Quick toggle')
+showichisignal = input.bool(true, title='Show Ichimoku cross signal 1', group='Quick toggle')
+showichisignal2 = input.bool(false, title='Show Ichimoku cross signal extra', group='Quick toggle')
+showlag = input.bool(false, title='Show Chikou span at cross at last confirmed positive cross', group='Quick toggle')
+showema = input.bool(true, title='Show EMAs', group='Quick toggle')
+showma = input.bool(true, title='Show SMAs', group='Quick toggle')
+showBSB = input.bool(false, title='Show bull market support band (20w SMA/21w EMA)', group='Quick toggle')
+// show50w = input.bool(false, title='Show 50 week SMA', group='Quick toggle')
+// show50wema = input.bool(false, title='Show 50 week EMA', group='Quick toggle')
+
+showsuper = input.bool(false, title='Show supertrend', group='Quick toggle')
+showsupersignals = input.bool(false, title='Show supertrend signals', group='Quick toggle')
+
+showMACD = input.bool(false, title='Show background color at MacD Cross', group='Quick toggle')
+showSARBG = input.bool(false, title='Show SAR background color', group='Quick toggle')
+showSARPlot = input.bool(false, title='Show SAR', group='Quick toggle')
+
+showinfobox = input.bool(false, title='Show market info', group='Quick toggle', inline = "01")
+count = input.int(50, minval=1, title="offset", group='Quick toggle', inline = "02") 
+marketinfocolor = input.color(color.new(#787b86, 0), "", group= 'Quick toggle', inline = "02" )
+
+
+show_ma1hlines = input.bool(false, 'Show Ma horizontal line 1', group='Quick toggle', inline = "03")
+ma1linecolor = input.color(color.new(#fff000, 0), "", group= 'Quick toggle', inline = "03" )
+
+ma1len = input.int(10, minval=1, title='MA line 1 length', group='Quick toggle', inline = "04")
+tf1 = input.timeframe(title="Ma line 1 time frame", defval="1D",group='Quick toggle', inline = "05")
+ma1line_src = input(close, title='Ma line 1 source', group='Quick toggle', inline = "06")
+MA1lineType = input.string(title='Ma line 1 type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Quick toggle', inline = "07")
+
+
+
+show_ma2hlines = input.bool(false, 'Show Ma horizontal line 2', group='Quick toggle', inline = "08")
+ma2linecolor = input.color(color.new(#e91e63, 0), "", group= 'Quick toggle', inline = "08" )
+
+ma2len = input.int(21, minval=1, title='MA line 2 length', group='Quick toggle', inline = "10")
+tf2 = input.timeframe(title="Ma line 2 time frame", defval="1D",group='Quick toggle', inline = "11")
+ma2line_src = input(close, title='Ma line 2 source', group='Quick toggle', inline = "12")
+MA2lineType = input.string(title='Ma line 2 type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Quick toggle', inline = "13")
+
+
+
+show_ma3hlines = input.bool(false, 'Show Ma horizontal line 3', group='Quick toggle', inline = "14")
+ma3linecolor = input.color(color.new(#4caf50, 0), "", group= 'Quick toggle', inline = "14" )
+
+ma3len = input.int(50, minval=1, title='MA line 3 length', group='Quick toggle', inline = "16")
+tf3 = input.timeframe(title="Ma line 3 time frame", defval="1D",group='Quick toggle', inline = "17")
+ma3line_src = input(close, title='Ma line 3 source', group='Quick toggle', inline = "18")
+ma3lineType = input.string(title='Ma line 3 type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Quick toggle', inline = "19")
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+// New individually changable ma's -------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// // ---------------------------------------------------------------------------------------------------------------------
+// // Moving average 1 ----------------------------------------------------------------------------------------------------
+
+// showm1x = input.bool(false, title='Show MA 1x (10)', group='Quick toggle',inline = "14" )
+// ma1xcolor= input.color(color.new(#fff000, 30), " ", group= 'Quick toggle', inline = "15" )
+// len1x = input.int(10, minval=1, title="Length", group='MA 1x' , inline = "16")
+// tfInput1x = input.timeframe("1D", "Timeframe", group='MA 1x', inline = "17")
+// ma1xType = input.string(title='MA 1x Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='MA 1x', inline = "18")
+// ma1xSource = input.source(title='MA 1x Source', defval=close, group='MA 1x', inline = "19")
+
+// ma1x = if ma1xType == 'SMA'
+//     ta.sma(ma1xSource, len1x)
+// else
+//     if ma1xType == 'EMA'
+//         ta.ema(ma1xSource, len1x)
+//     else
+//         if ma1xType == 'WMA'
+//             ta.wma(ma1xSource, len1x)
+//         else
+//             if ma1xType == 'RMA'
+//                 ta.rma(ma1xSource, len1x)
+//             else
+//                 if ma1xType == 'HMA'
+//                     ta.wma(2 * ta.wma(ma1xSource, len1x / 2) - ta.wma(ma1xSource, len1x), math.round(math.sqrt(len1x)))
+
+// securityNoRepaint1x(sym, tf, src) =>
+//     request.security(sym, tf, src[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+// maHTF1x = securityNoRepaint1x(syminfo.tickerid, tfInput1x, ma1x)
+// plot(showm1x ? maHTF1x : na, "MA 1x",  ma1xcolor, linewidth=4)
+
+// // ---------------------------------------------------------------------------------------------------------------------
+
+
+
+
+// // ---------------------------------------------------------------------------------------------------------------------
+// // Moving average 2 ----------------------------------------------------------------------------------------------------
+
+// showm2x = input.bool(false, title='Show MA 2x (21)', group='Quick toggle', inline = "20" )
+// ma2xcolor= input.color(color.new(#e91e63, 30), " ", group= 'Quick toggle', inline = "21" )
+// len2x = input.int(21, minval=1, title="Length", group='MA 2x')
+// tfInput2x = input.timeframe("1D", "Timeframe", group='MA 2x')
+// ma2xType = input.string(title='MA 2x Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='MA 2x')
+// ma2xSource = input.source(title='MA 2x Source', defval=close, group='MA 2x')
+
+// ma2x = if ma2xType == 'SMA'
+//     ta.sma(ma2xSource, len2x)
+// else
+//     if ma2xType == 'EMA'
+//         ta.ema(ma2xSource, len2x)
+//     else
+//         if ma2xType == 'WMA'
+//             ta.wma(ma2xSource, len2x)
+//         else
+//             if ma2xType == 'RMA'
+//                 ta.rma(ma2xSource, len2x)
+//             else
+//                 if ma2xType == 'HMA'
+//                     ta.wma(2 * ta.wma(ma2xSource, len2x / 2) - ta.wma(ma2xSource, len2x), math.round(math.sqrt(len2x)))
+
+// securityNoRepaint2x(sym, tf, src) =>
+//     request.security(sym, tf, src[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+// maHTF2x = securityNoRepaint2x(syminfo.tickerid, tfInput2x, ma2x)
+// plot(showm2x ? maHTF2x : na, "MA 2x",  ma2xcolor, linewidth=4)
+
+// // ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// // ---------------------------------------------------------------------------------------------------------------------
+// // Moving average 3 ----------------------------------------------------------------------------------------------------
+
+// showm3x = input.bool(false, title='Show MA 3x (50)', group='Quick toggle', inline = "22" )
+// ma3xcolor= input.color(color.new(#4caf50, 30), " ", group= 'Quick toggle', inline = "23" )
+// len3x = input.int(50, minval=1, title="Length", group='MA 3x')
+// tfInput3x = input.timeframe("1D", "Timeframe", group='MA 3x')
+// ma3xType = input.string(title='MA 3x Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='MA 3x')
+// ma3xSource = input.source(title='MA 3x Source', defval=close, group='MA 3x')
+
+// ma3x = if ma3xType == 'SMA'
+//     ta.sma(ma3xSource, len3x)
+// else
+//     if ma3xType == 'EMA'
+//         ta.ema(ma3xSource, len3x)
+//     else
+//         if ma3xType == 'WMA'
+//             ta.wma(ma3xSource, len3x)
+//         else
+//             if ma3xType == 'RMA'
+//                 ta.rma(ma3xSource, len3x)
+//             else
+//                 if ma3xType == 'HMA'
+//                     ta.wma(2 * ta.wma(ma3xSource, len3x / 2) - ta.wma(ma3xSource, len3x), math.round(math.sqrt(len3x)))
+
+// securityNoRepaint3x(sym, tf, src) =>
+//     request.security(sym, tf, src[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+// maHTF3x = securityNoRepaint3x(syminfo.tickerid, tfInput3x, ma3x)
+// plot(showm3x ? maHTF3x : na, "MA 3x",  ma3xcolor, linewidth=4)
+
+// // ---------------------------------------------------------------------------------------------------------------------
+
+
+// // ---------------------------------------------------------------------------------------------------------------------
+// // Moving average 4 ----------------------------------------------------------------------------------------------------
+
+// showm4x = input.bool(false, title='Show MA 4x (200)', group='Quick toggle', inline = "24" )
+// ma4xcolor= input.color(color.new(#ffffff, 30), "", group= 'Quick toggle', inline = "25" )
+// len4x = input.int(200, minval=1, title="Length", group='MA 4x')
+// tfInput4x = input.timeframe("1D", "Timeframe", group='MA 4x')
+// ma4xType = input.string(title='MA 4x Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='MA 4x')
+// ma4xSource = input.source(title='MA 4x Source', defval=close, group='MA 4x')
+
+// ma4x = if ma4xType == 'SMA'
+//     ta.sma(ma4xSource, len4x)
+// else
+//     if ma4xType == 'EMA'
+//         ta.ema(ma4xSource, len4x)
+//     else
+//         if ma4xType == 'WMA'
+//             ta.wma(ma4xSource, len4x)
+//         else
+//             if ma4xType == 'RMA'
+//                 ta.rma(ma4xSource, len4x)
+//             else
+//                 if ma4xType == 'HMA'
+//                     ta.wma(2 * ta.wma(ma4xSource, len4x / 2) - ta.wma(ma4xSource, len4x), math.round(math.sqrt(len4x)))
+
+// securityNoRepaint4x(sym, tf, src) =>
+//     request.security(sym, tf, src[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+// maHTF4x = securityNoRepaint4x(syminfo.tickerid, tfInput4x, ma4x)
+// plot(showm4x ? maHTF4x : na, "MA 4x",  ma4xcolor, linewidth=4)
+
+// // ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// Bollinger bands: ----------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+length = input.int(20, minval=1, group='Bollinger bands')
+src = input.source(close, title='Source', group='Bollinger bands')
+mult = input.float(2.0, minval=0.001, maxval=50, title='StdDev', group='Bollinger bands')
+basis = ta.sma(src, length)
+dev = mult * ta.stdev(src, length)
+upper = basis + dev
+lower = basis - dev
+offset = input.int(0, 'Offset', minval=-500, maxval=500, group='Bollinger bands')
+
+plot(showbb ? basis : na, 'BB Basis', color=color.new(#9c27b0, 0), offset=offset, linewidth=2)
+
+p11 = plot(showbb ? upper : na, 'BB Upper', color=color.new(#e91e63, 0), offset=offset, linewidth=1)  //#e91e63
+p22 = plot(showbb ? lower : na, 'BB Lower', color=color.new(#e91e63, 0), offset=offset, linewidth=1)
+if showbb == true
+    p11 = false
+    p22 = false
+    p22
+
+fill(p11, p22, title='Bollinger bands background', color=color.new(#673ab7, 94))  // nice colors #00bcd4 #da00ff
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// Ichimoku cloud ------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+conversionPeriods = input.int(9, minval=1, title='Conversion Line Length', group='Ichimoku Cloud')
+basePeriods = input.int(26, minval=1, title='Base Line Length', group='Ichimoku Cloud')
+laggingSpan2Periods = input.int(52, minval=1, title='Lagging Span 2 Length', group='Ichimoku Cloud')
+displacement = input.int(26, minval=1, title='Displacement', group='Ichimoku Cloud')
+donchian(len) =>
+    math.avg(ta.lowest(len), ta.highest(len))
+
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+ichiup = ta.crossover(conversionLine, baseLine)
+ichidown = ta.crossover(baseLine, conversionLine)
+
+plotshape(ichiup ? conversionLine : na, 'Ichi long 1', style=shape.circle, location=location.absolute, offset=-1, color=#00ff00, size=size.small, transp=showichisignal ? 0 : 100)  // if you want to change size, you can switch out size.small to size.tiny or size.normal or size.large or size.huge
+plotshape(ichidown ? conversionLine : na, 'Ichi short 1', style=shape.circle, location=location.absolute, offset=-1, color=#ff1100, size=size.small, transp=showichisignal ? 0 : 100)  // if you want to change size, you can switch out size.small to size.tiny or size.normal or size.large or size.huge
+
+plotshape(ichiup ? conversionLine : na, 'Ichi long (confirmed)', style=shape.triangleup, location=location.bottom, color=#00ff00, size=size.small, transp=showichisignal2 ? 50 : 100)  // if you want to change size, you can switch out size.small to size.tiny or size.normal or size.large or size.huge
+plotshape(ichidown ? conversionLine : na, 'Ichi short (confirmed)', style=shape.triangleup, location=location.bottom, color=#ff1100, size=size.small, transp=showichisignal2 ? 50 : 100)  // if you want to change size, you can switch out size.small to size.tiny or size.normal or size.large or size.huge
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// New lagging span label ----------------------------------------------------------------------------------------------
+
+if showlag == true
+    if ichiup
+        var Label = label.new(x=na, y=na, yloc=yloc.abovebar, color=color.green, textcolor=color.new(color.lime, 0), size=size.tiny, style=label.style_arrowdown, color=color.lime)
+        LbText = 'Chikou'
+        label.set_size(id=Label, size=size.small)
+        label.set_text(id=Label, text=LbText)
+        label.set_x(id=Label, x=bar_index[26])
+        
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+plot(showichi ? conversionLine : na, color=color.new(#009688, 25), title='Tenkan', linewidth=1)  // 00e2ff
+plot(showichi ? baseLine : na, color=color.new(#f44336, 25), title='Kijun', linewidth=1)  // ff1100
+plot(showichi ? close : na, offset=-displacement + 1, color=color.new(#00ff00, 25), title='Chikou (Lagging) span')  // #459915
+
+p1 = plot(showichi ? leadLine1 : na, offset=displacement - 1, color=color.new(#4CAF50, 15), title='Ichi Lead 1')
+p2 = plot(showichi ? leadLine2 : na, offset=displacement - 1, color=color.new(#FF5252, 15), title='Ichi Lead 2')
+
+
+if showichi == true
+    p1 = false
+    p2 = false
+    p2
+
+
+fill(p1, p2, color=leadLine1 > leadLine2 ? color.new(#4CAF50, 85) : color.new(#FF5252, 85), transp=90, title='Ichi background')
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+// Moving averages: ----------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// EMA -----------------------------------------------------------------------------------------------------------------
+
+MA1Period = input.int(10, title='MA 1 Period (EMA 10)', group='Show EMAs')
+MA1Type = input.string(title='MA 1 Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show EMAs')
+MA1Source = input.source(title='MA 1 Source', defval=close, group='Show EMAs')
+
+MA2Period = input.int(50, title='MA 2 Period (EMA 50)', group='Show EMAs')
+MA2Type = input.string(title='MA 2 Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show EMAs')
+MA2Source = input.source(title='MA 2 Source', defval=close, group='Show EMAs')
+
+MA3Period = input.int(200, title='MA 3 Period (EMA 200)', group='Show EMAs')
+MA3Type = input.string(title='MA 3 Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show EMAs')
+MA3Source = input.source(title='MA 3 Source', defval=close, group='Show EMAs')
+
+MA4Period = input.int(21, title='MA 4 Period (EMA 21)', group='Show EMAs')
+MA4Type = input.string(title='MA 4 Type', defval='EMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show EMAs')
+MA4Source = input.source(title='MA 4 Source', defval=close, group='Show EMAs')
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// SMA -----------------------------------------------------------------------------------------------------------------
+
+MA5Period = input.int(7, title='MA 5 Period (SMA 7)', group='Show SMAs')
+MA5Type = input.string(title='MA 5 Type', defval='SMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show SMAs')
+MA5Source = input.source(title='MA 5 Source', defval=close, group='Show SMAs')
+
+MA6Period = input.int(50, title='MA 6 Period (SMA 50)', group='Show SMAs')
+MA6Type = input.string(title='MA 6 Type', defval='SMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show SMAs')
+MA6Source = input.source(title='MA 6 Source', defval=close, group='Show SMAs')
+
+MA7Period = input.int(100, title='MA 7 Period (SMA 100)', group='Show SMAs')
+MA7Type = input.string(title='MA 7 Type', defval='SMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show SMAs')
+MA7Source = input.source(title='MA 7 Source', defval=close, group='Show SMAs')
+
+MA8Period = input.int(128, title='MA 8 Period (SMA 128)', group='Show SMAs')
+MA8Type = input.string(title='MA 8 Type', defval='SMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show SMAs')
+MA8Source = input.source(title='MA 8 Source', defval=close, group='Show SMAs')
+
+MA9Period = input.int(200, title='MA 9 Period (SMA 200)', group='Show SMAs')
+MA9Type = input.string(title='MA 9 Type', defval='SMA', options=['RMA', 'SMA', 'EMA', 'WMA', 'HMA'], group='Show SMAs')
+MA9Source = input.source(title='MA 9 Source', defval=close, group='Show SMAs')
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// MA types. This should be made into a function instead (note to self) ------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+MA1 = if MA1Type == 'SMA'
+    ta.sma(MA1Source, MA1Period)
+else
+    if MA1Type == 'EMA'
+        ta.ema(MA1Source, MA1Period)
+    else
+        if MA1Type == 'WMA'
+            ta.wma(MA1Source, MA1Period)
+        else
+            if MA1Type == 'RMA'
+                ta.rma(MA1Source, MA1Period)
+            else
+                if MA1Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA1Source, MA1Period / 2) - ta.wma(MA1Source, MA1Period), math.round(math.sqrt(MA1Period)))
+
+MA2 = if MA2Type == 'SMA'
+    ta.sma(MA2Source, MA2Period)
+else
+    if MA2Type == 'EMA'
+        ta.ema(MA2Source, MA2Period)
+    else
+        if MA2Type == 'WMA'
+            ta.wma(MA2Source, MA2Period)
+        else
+            if MA2Type == 'RMA'
+                ta.rma(MA2Source, MA2Period)
+            else
+                if MA2Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA2Source, MA2Period / 2) - ta.wma(MA2Source, MA2Period), math.round(math.sqrt(MA2Period)))
+
+MA3 = if MA3Type == 'SMA'
+    ta.sma(MA3Source, MA3Period)
+else
+    if MA3Type == 'EMA'
+        ta.ema(MA3Source, MA3Period)
+    else
+        if MA3Type == 'WMA'
+            ta.wma(MA3Source, MA3Period)
+        else
+            if MA3Type == 'RMA'
+                ta.rma(MA3Source, MA3Period)
+            else
+                if MA3Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA3Source, MA3Period / 2) - ta.wma(MA3Source, MA3Period), math.round(math.sqrt(MA3Period)))
+
+MA4 = if MA4Type == 'SMA'
+    ta.sma(MA4Source, MA4Period)
+else
+    if MA4Type == 'EMA'
+        ta.ema(MA4Source, MA4Period)
+    else
+        if MA4Type == 'WMA'
+            ta.wma(MA4Source, MA4Period)
+        else
+            if MA4Type == 'RMA'
+                ta.rma(MA4Source, MA4Period)
+            else
+                if MA4Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA4Source, MA4Period / 2) - ta.wma(MA4Source, MA4Period), math.round(math.sqrt(MA4Period)))
+
+MA5 = if MA5Type == 'SMA'
+    ta.sma(MA5Source, MA5Period)
+else
+    if MA5Type == 'EMA'
+        ta.ema(MA5Source, MA5Period)
+    else
+        if MA5Type == 'WMA'
+            ta.wma(MA5Source, MA5Period)
+        else
+            if MA5Type == 'RMA'
+                ta.rma(MA5Source, MA5Period)
+            else
+                if MA5Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA5Source, MA5Period / 2) - ta.wma(MA5Source, MA5Period), math.round(math.sqrt(MA5Period)))
+MA6 = if MA6Type == 'SMA'
+    ta.sma(MA6Source, MA6Period)
+else
+    if MA6Type == 'EMA'
+        ta.ema(MA6Source, MA6Period)
+    else
+        if MA6Type == 'WMA'
+            ta.wma(MA6Source, MA6Period)
+        else
+            if MA6Type == 'RMA'
+                ta.rma(MA6Source, MA6Period)
+            else
+                if MA6Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA6Source, MA6Period / 2) - ta.wma(MA6Source, MA6Period), math.round(math.sqrt(MA6Period)))
+MA7 = if MA7Type == 'SMA'
+    ta.sma(MA7Source, MA7Period)
+else
+    if MA7Type == 'EMA'
+        ta.ema(MA7Source, MA7Period)
+    else
+        if MA7Type == 'WMA'
+            ta.wma(MA7Source, MA7Period)
+        else
+            if MA7Type == 'RMA'
+                ta.rma(MA7Source, MA7Period)
+            else
+                if MA7Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA7Source, MA7Period / 2) - ta.wma(MA7Source, MA7Period), math.round(math.sqrt(MA7Period)))
+MA8 = if MA8Type == 'SMA'
+    ta.sma(MA8Source, MA8Period)
+else
+    if MA8Type == 'EMA'
+        ta.ema(MA8Source, MA8Period)
+    else
+        if MA8Type == 'WMA'
+            ta.wma(MA8Source, MA8Period)
+        else
+            if MA8Type == 'RMA'
+                ta.rma(MA8Source, MA8Period)
+            else
+                if MA8Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA8Source, MA8Period / 2) - ta.wma(MA8Source, MA8Period), math.round(math.sqrt(MA8Period)))
+MA9 = if MA9Type == 'SMA'
+    ta.sma(MA9Source, MA9Period)
+else
+    if MA9Type == 'EMA'
+        ta.ema(MA9Source, MA9Period)
+    else
+        if MA9Type == 'WMA'
+            ta.wma(MA9Source, MA9Period)
+        else
+            if MA9Type == 'RMA'
+                ta.rma(MA9Source, MA9Period)
+            else
+                if MA9Type == 'HMA'
+                    ta.wma(2 * ta.wma(MA9Source, MA9Period / 2) - ta.wma(MA9Source, MA9Period), math.round(math.sqrt(MA9Period)))
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Plot moving averages ------------------------------------------------------------------------------------------------
+
+plot(showema ? MA1 : na, color=color.new(#fff000, 0), linewidth=3, title='(EMA 10)')
+plot(showema ? MA2 : na, color=color.new(color.green, 0), linewidth=4, title='(EMA 50)')
+plot(showema ? MA3 : na, color=color.new(color.white, 0), linewidth=4, title='(EMA 200)')
+plot(showema ? MA4 : na, color=color.new(#e91e63, 0), linewidth=3, title='(EMA 21)')
+plot(showma ? MA5 : na, color=color.new(#ff1100, 0), linewidth=2, title='(SMA 7)')
+plot(showma ? MA6 : na, color=color.new(color.orange, 0), linewidth=1, title='(SMA 50)')
+plot(showma ? MA7 : na, color=color.new(color.blue, 0), linewidth=1, title='(SMA 100)')
+plot(showma ? MA8 : na, color=color.new(#0044ff, 0), linewidth=1, title='(SMA 128)')
+plot(showma ? MA9 : na, color=color.new(#26a69a, 0), linewidth=1, title='(SMA 200)')
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Different resolution Moving averages: -------------------------------------------------------------------------------
+
+//showmtfmas = input.bool(false, title='Show EMAs in different resolution', group='Quick toggle')
+//MTEMA = input.timeframe(title='Different resolutuion', defval='1D', group='Quick toggle')
+
+
+
+//MA11D = request.security(syminfo.tickerid, MTEMA, MA1, gaps=barmerge.gaps_on)
+//MA21D = request.security(syminfo.tickerid, MTEMA, MA2, gaps=barmerge.gaps_on)
+//MA31D = request.security(syminfo.tickerid, MTEMA, MA3, gaps=barmerge.gaps_on)
+//MA41D = request.security(syminfo.tickerid, MTEMA, MA4, gaps=barmerge.gaps_on)
+
+
+//plot(showmtfmas ? MA11D : na, color=color.new(#fff000, 50), linewidth=3, title='Different resolution, (EMA 10)')
+//plot(showmtfmas ? MA21D : na, color=color.new(color.green, 50), linewidth=3, title='Different resolution, (EMA 50)')
+//plot(showmtfmas ? MA41D : na, color=color.new(#e91e63, 50), linewidth=3, title='Different resolution, (EMA 21)')
+//plot(showmtfmas ? MA31D : na, color=color.new(color.white, 50), linewidth=3, title='Different resolution, (EMA 200)')
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+// 50 Week and the Bull market support band (Originally made by legroszach, modified by mikul): ------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+wsource = close
+sma20 = 20
+// sma50 = 50
+ema21 = 21
+
+sma20w = ta.sma(wsource, sma20)
+// sma50w = ta.sma(wsource, sma50)
+ema21w = ta.ema(wsource, ema21)
+// sma50wema = ta.ema(wsource, sma50)
+
+out20 = request.security(syminfo.tickerid, 'W', sma20w, gaps=barmerge.gaps_on)
+out21 = request.security(syminfo.tickerid, 'W', ema21w, gaps=barmerge.gaps_on)
+// out50 = request.security(syminfo.tickerid, 'W', sma50w, gaps=barmerge.gaps_on)
+// out50ema = request.security(syminfo.tickerid, 'W', sma50wema, gaps=barmerge.gaps_on)
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Bull market support band --------------------------------------------------------------------------------------------
+
+Plot20 = plot(showBSB ? out20 : na, color=color.new(color.red, 0), linewidth=1, title='BMSB 20w sma ')
+Plot21 = plot(showBSB ? out21 : na, color=color.new(color.green, 0), linewidth=1, title='BMSB 21w ema')
+if showBSB == true
+    Plot20 = false
+    Plot21 = false
+    Plot21
+
+fill(Plot20, Plot21, color=color.new(color.orange, 75), fillgaps=true, title='Bull Market Support band bg')
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 50 week SMA and EMA -------------------------------------------------------------------------------------------------
+
+// Plot50 = plot(show50w ? out50 : na, color=color.new(#ff9800, 0), linewidth=2, title='50w SMA')
+// Plot50ema = plot(show50wema ? out50ema : na, color=color.new(color.green, 0), linewidth=2, title='50w EMA')
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// New stuff. MacD-cross signal and SAR with up and down colors plus SAR up background color ---------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// MacD crossing signal ------------------------------------------------------------------------------------------------
+
+FastLength = input.int(12, 'MACD Fast Length', group='MacD Settings')
+SlowLength = input.int(26, 'MACD Slow Length', group='MacD Settings')
+SignalSmoothing = input.int(9, 'MACD Signal Smoothing', group='MacD Settings')
+
+MACDFast = ta.ema(close, FastLength)
+MACDSlow = ta.ema(close, SlowLength)
+MACD = MACDFast - MACDSlow
+Signal = ta.ema(MACD, SignalSmoothing)
+MACDCondition = ta.crossover(MACD, Signal)
+MACDConditionDown = ta.crossunder(MACD, Signal)
+
+bgcolor(title='MacD up background', color=MACDCondition and showMACD ? color.new(color.green, 94) : na)
+bgcolor(title='MacD down background', color=MACDConditionDown and showMACD ? color.new(#f44336, 93) : na )
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// SAR and SAR-Background color ----------------------------------------------------------------------------------------
+
+SARStart = input.float(0.02, 'SAR Start', group='SAR Settings')
+SARInc = input.float(0.02, 'SAR Increment', group='SAR Settings')
+SARMax = input.float(0.2, 'SAR Max Value', group='SAR Settings')
+
+SAR = ta.sar(SARStart, SARInc, SARMax)
+SARCondition = close > SAR
+
+bgcolor(title='SAR background', color=SARCondition and showSARBG ? color.new(color.green, 98) : na )
+
+plot(SAR,title='SAR up color', style=plot.style_cross, color=showSARPlot ? SARCondition ? color.new(color.green, 0) : na : na)
+plot(SAR,title='SAR down color', style=plot.style_cross, color=showSARPlot ? SARCondition ? na : color.new(color.red, 0) : na )
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Super trend with buy and sell signals  ------------------------------------------------------------------------------
+
+atrPeriod = input(10, "ATR Length")
+factor = input.float(3.0, "Factor", step = 0.01)
+
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+plotshape(ta.change(direction) < 0 ? supertrend : na, title="Super uptrend begins", location=location.absolute, style=shape.circle, size=size.tiny, color=showsuper ? color.new(color.green, 0) : na)
+plotshape(showsupersignals and ta.change(direction) < 0 ? supertrend : na, title="Super-buy-lable", text="Buy", location=location.absolute, style=shape.labelup, size=size.tiny, color=color.green, textcolor=color.white)
+
+plotshape(ta.change(direction) > 0 ? supertrend : na, title="Super-downtrend begins", location=location.absolute, style=shape.circle, size=size.tiny, color=showsuper ? color.new(color.red, 0) : na)
+plotshape(showsupersignals and ta.change(direction) > 0 ? supertrend : na, title="Super-sell-lable", text="Sell", location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.red, textcolor=color.white)
+
+
+bodyMiddle = plot((open + close) / 2, display=display.none)
+upTrend = plot(direction < 0 ? supertrend : na, "Super uptrend (lines)", color=showsuper ? color.new(#00ff00, 0) : na, style=plot.style_linebr)
+downTrend = plot(direction < 0? na : supertrend, "Super downtrend (lines)", color=showsuper ? color.new(#ff1100, 0) : na, style=plot.style_linebr)
+
+fill(bodyMiddle, upTrend, title="Super uptrend (background)", color=showsuper ? color.new(#00ff00, 90) : na, fillgaps=false)
+fill(bodyMiddle, downTrend, title="Super downtrend (background)", color=showsuper ? color.new(#ff1100, 90) : na, fillgaps=false)
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Market infobox  -----------------------------------------------------------------------------------------------------
+
+Bitcoind = request.security('BTC.D', timeframe.period, close, lookahead=barmerge.lookahead_on)
+total1 = request.security('TOTAL', timeframe.period, close, lookahead=barmerge.lookahead_on)
+// total2 = request.security('TOTAL2', timeframe.period, close, lookahead=barmerge.lookahead_on)
+btc = request.security('BTCUSDT', timeframe.period, close, lookahead=barmerge.lookahead_on)
+dxy = request.security('DXY', timeframe.period, close, lookahead=barmerge.lookahead_on)
+
+
+//myinfo_text = 'Current chart    ' + str.tostring(close, '#.##########') + ' \nBitcoin price:     ' + str.tostring(float(btc), "#") + ' \nBitcoin dominance:  ' + str.tostring(float(Bitcoind), '#.###') + '% '
+myinfo_text = '' + 'BTC/USDT:     ' + str.tostring(float(btc), "#") + '  \nBTC.D:         ' + str.tostring(float(Bitcoind), '#.##') + ' %' + ' \nDXY:             ' + str.tostring(float(dxy), '#.###') + '  ' + ' \nTotal:         ' + str.tostring(float(total1*0.000000000001), '#.####') + ' T ' // + ' \nTotal2:        ' + str.tostring(float(total2*0.000000000001), '#.####') + ' T' 
+
+
+//textcolor=showinfobox ? color.new(infocolor, 0) : na,
+var infoboxcolor = marketinfocolor //#e91e63 // #00bcd4 //infocolor
+
+
+// we use minimal time of bars as an offset in future 
+var float minBarTime = 999999999999
+var label l = label.new(bar_index, close, xloc=xloc.bar_time, style=label.style_none, textcolor=showinfobox ? infoboxcolor : color.new(#ffffff,100), size=size.normal)
+currentTime = time(timeframe.period)
+timeOfCurrentBar = ta.change(currentTime, 1)
+minBarTime := not na(minBarTime) ? math.min(timeOfCurrentBar, minBarTime) : timeOfCurrentBar
+// add to current time calculated time of bar
+label.set_x(l, int(currentTime + count * minBarTime))
+label.set_y(l, hl2)
+label.set_text(id=l, text=str.tostring(myinfo_text))
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Ma 1 lines ----------------------------------------------------------------------------------------------------------
+
+theMA1 = if MA1lineType == 'SMA'
+    ta.sma(ma1line_src, ma1len)
+else
+    if MA1lineType == 'EMA'
+        ta.ema(ma1line_src, ma1len)
+    else
+        if MA1lineType == 'WMA'
+            ta.wma(ma1line_src, ma1len)
+        else
+            if MA1lineType == 'RMA'
+                ta.rma(ma1line_src, ma1len)
+            else
+                if MA1lineType == 'HMA'
+                    ta.wma(2 * ta.wma(ma1line_src, ma1len / 2) - ta.wma(ma1line_src, ma1len), math.round(math.sqrt(ma1len)))
+
+
+out = theMA1 
+s1 = request.security(syminfo.tickerid, show_ma1hlines ? tf1 : "1", out, gaps=barmerge.gaps_off)
+ma1MA = float(s1)
+
+f_moveLine(_id, _x, _y) =>
+    line.set_xy1(_id, _x, _y)
+    line.set_xy2(_id, _x + 1, _y)
+
+f_moveLabel(_id, _x, _y) =>
+    label.set_xy(_id, _x, _y)
+
+
+//var bool show_ma1lines = not show_ma1hlines
+var color_ma1MA = ma1linecolor
+var line_ma1MA = line.new(x1=na, y1=na, x2=na, y2=na, xloc=xloc.bar_time, extend=extend.right, color=show_ma1hlines ? color_ma1MA : na, style=line.style_dashed)
+var label_ma1MA = label.new(x=na, y=na, text=str.tostring(ma1len) + ' ' + MA1lineType + ' ' + tf1, xloc=xloc.bar_time, color=show_ma1hlines ? color_ma1MA : na, textcolor=show_ma1hlines ? color_ma1MA : na, style=label.style_none)
+
+
+if hour == 0 and minute == 0 and year(time) == year(timenow) and month(time) == month(timenow) and dayofmonth(time) == dayofmonth(timenow)
+    f_moveLine(line_ma1MA, time, ma1MA)
+    f_moveLabel(label_ma1MA, time, ma1MA)
+//plot(ma1MA, color=show_ma1lines ? color_ma1MA : na, linewidth=1, title='Entry EMA')
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Ma 2 lines ----------------------------------------------------------------------------------------------------------
+
+theMA2 = if MA2lineType == 'SMA'
+    ta.sma(ma2line_src, ma2len)
+else
+    if MA2lineType == 'EMA'
+        ta.ema(ma2line_src, ma2len)
+    else
+        if MA2lineType == 'WMA'
+            ta.wma(ma2line_src, ma2len)
+        else
+            if MA2lineType == 'RMA'
+                ta.rma(ma2line_src, ma2len)
+            else
+                if MA2lineType == 'HMA'
+                    ta.wma(2 * ta.wma(ma2line_src, ma2len / 2) - ta.wma(ma2line_src, ma2len), math.round(math.sqrt(ma2len)))
+
+
+out2 = theMA2 
+s2 = request.security(syminfo.tickerid, show_ma2hlines ? tf2 : "1", out2, gaps=barmerge.gaps_off)
+ma2MA = float(s2)
+
+
+//var bool show_ma1lines = not show_ma1hlines
+var color_ma2MA = ma2linecolor
+var line_ma2MA = line.new(x1=na, y1=na, x2=na, y2=na, xloc=xloc.bar_time, extend=extend.right, color=show_ma2hlines ? color_ma2MA : na, style=line.style_dashed)
+var label_ma2MA = label.new(x=na, y=na, text=str.tostring(ma2len) + ' ' + MA2lineType + ' ' + tf2, xloc=xloc.bar_time, color=show_ma2hlines ? color_ma2MA : na, textcolor=show_ma2hlines ? color_ma2MA : na, style=label.style_none)
+
+
+if hour == 0 and minute == 0 and year(time) == year(timenow) and month(time) == month(timenow) and dayofmonth(time) == dayofmonth(timenow)
+    f_moveLine(line_ma2MA, time, ma2MA)
+    f_moveLabel(label_ma2MA, time, ma2MA)
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Ma 3 lines ----------------------------------------------------------------------------------------------------------
+
+thema3 = if ma3lineType == 'SMA'
+    ta.sma(ma3line_src, ma3len)
+else
+    if ma3lineType == 'EMA'
+        ta.ema(ma3line_src, ma3len)
+    else
+        if ma3lineType == 'WMA'
+            ta.wma(ma3line_src, ma3len)
+        else
+            if ma3lineType == 'RMA'
+                ta.rma(ma3line_src, ma3len)
+            else
+                if ma3lineType == 'HMA'
+                    ta.wma(2 * ta.wma(ma3line_src, ma3len / 2) - ta.wma(ma3line_src, ma3len), math.round(math.sqrt(ma3len)))
+
+
+out3 = thema3 
+s3 = request.security(syminfo.tickerid, show_ma3hlines ? tf3 : "1", out3, gaps=barmerge.gaps_off)
+ma3MA = float(s3)
+
+
+//var bool show_ma1lines = not show_ma1hlines
+var color_ma3MA = ma3linecolor
+var line_ma3MA = line.new(x1=na, y1=na, x2=na, y2=na, xloc=xloc.bar_time, extend=extend.right, color=show_ma3hlines ? color_ma3MA : na, style=line.style_dashed)
+var label_ma3MA = label.new(x=na, y=na, text=str.tostring(ma3len) + ' ' + ma3lineType + ' ' + tf3, xloc=xloc.bar_time, color=show_ma3hlines ? color_ma3MA : na, textcolor=show_ma3hlines ? color_ma3MA : na, style=label.style_none)
+
+
+if hour == 0 and minute == 0 and year(time) == year(timenow) and month(time) == month(timenow) and dayofmonth(time) == dayofmonth(timenow)
+    f_moveLine(line_ma3MA, time, ma3MA)
+    f_moveLabel(label_ma3MA, time, ma3MA)
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
